@@ -7,7 +7,12 @@ const router = express.Router();
 
 function signToken(user) {
   return jwt.sign(
-    { role: "citizen", userId: user._id.toString(), email: user.email },
+    {
+      role: "citizen",
+      userId: user._id.toString(),
+      email: user.email,
+      name: user.name
+    },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
   );
@@ -26,7 +31,10 @@ router.post("/register", async (req, res) => {
     const passwordHash = await bcrypt.hash(String(password), 10);
     const user = await User.create({ name: String(name).trim(), email: normalizedEmail, passwordHash });
 
-    return res.json({ token: signToken(user), user: { id: user._id, name: user.name, email: user.email } });
+    return res.json({
+      token: signToken(user),
+      user: { id: user._id, name: user.name, email: user.email }
+    });
   } catch {
     return res.status(500).json({ message: "Server error" });
   }
@@ -43,7 +51,10 @@ router.post("/login", async (req, res) => {
     const ok = await bcrypt.compare(String(password), user.passwordHash);
     if (!ok) return res.status(401).json({ message: "Invalid credentials" });
 
-    return res.json({ token: signToken(user), user: { id: user._id, name: user.name, email: user.email } });
+    return res.json({
+      token: signToken(user),
+      user: { id: user._id, name: user.name, email: user.email }
+    });
   } catch {
     return res.status(500).json({ message: "Server error" });
   }

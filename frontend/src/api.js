@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 async function apiFetch(path, { token, method, body, isForm } = {}) {
   const headers = {};
@@ -32,5 +32,12 @@ export const api = {
   myComplaints: (token) => apiFetch("/api/complaints/mine", { token }),
   authorityComplaints: (token) => apiFetch("/api/authority/complaints", { token }),
   updateStage: (token, id, stage, note) =>
-    apiFetch(`/api/authority/complaints/${id}/stage`, { token, method: "PATCH", body: { stage, note } })
+    apiFetch(`/api/authority/complaints/${id}/stage`, { token, method: "PATCH", body: { stage, note } }),
+  postComment: (token, complaintId, text) =>
+    apiFetch(`/api/complaints/${complaintId}/comments`, { token, method: "POST", body: { text } }),
+  uploadEvidence: (token, id, file) => {
+    const form = new FormData();
+    form.append("evidence", file);
+    return apiFetch(`/api/authority/complaints/${id}/evidence`, { token, method: "PATCH", body: form, isForm: true });
+  }
 };

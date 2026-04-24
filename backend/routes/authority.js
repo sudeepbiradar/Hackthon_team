@@ -1,8 +1,47 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
+const multer = require("multer");
+const path = require("path");
 const Complaint = require("../models/Complaint");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { CATEGORIES } = require("../utils/aiRouter");
+
+function uploadsDir() {
+  const base = process.env.UPLOAD_DIR || "uploads";
+  return path.join(process.cwd(), base);
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadsDir()),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname || "");
+    cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = [
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/bmp',
+    'image/tiff',
+    'image/svg+xml'
+  ];
+  
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only image files are allowed.'), false);
+  }
+};
+
+const upload = multer({ 
+  storage, 
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 } 
+});
 
 const router = express.Router();
 
@@ -50,6 +89,23 @@ router.patch("/complaints/:id/stage", requireAuth, requireRole("authority"), asy
 
     complaint.currentStage = String(stage);
     complaint.timeline.push({ stage: String(stage), note: String(note || "") });
+    await complaint.save();
+    return res.json({ complaint });
+  } catch {
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.patch("/complaints/:id/evidence", requireAuth, requireRole("authority"), upload.single("evidence"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "Missing evidence file" });
+
+    const complaint = await Complaint.findById(req.params.id);
+    if (!complaint) return res.status(404).json({ message: "Not found" });
+    if (complaint.category !== req.user.category) return res.status(403).json({ message: "Forbidden" });
+
+    complaint.evidenceUrl = `/uploads/${req.file.filename}`;
+    complaint.timeline.push({ stage: complaint.currentStage, note: "Evidence uploaded by authority" });
     await complaint.save();
     return res.json({ complaint });
   } catch {

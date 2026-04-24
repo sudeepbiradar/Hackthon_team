@@ -9,6 +9,17 @@ const timelineItemSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const commentSchema = new mongoose.Schema(
+  {
+    authorName: { type: String, required: true, trim: true },
+    authorRole: { type: String, required: true, trim: true },
+    authorPhotoUrl: { type: String, default: "" },
+    text: { type: String, required: true, trim: true },
+    at: { type: Date, default: Date.now }
+  },
+  { _id: false }
+);
+
 const complaintSchema = new mongoose.Schema(
   {
     citizen: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
@@ -34,8 +45,10 @@ const complaintSchema = new mongoose.Schema(
       lng: { type: Number, default: null }
     },
     attachmentUrl: { type: String, default: "" },
+    evidenceUrl: { type: String, default: "" },
     currentStage: { type: String, required: true, default: "Submitted", index: true },
-    timeline: { type: [timelineItemSchema], default: () => [{ stage: "Submitted", note: "Complaint filed" }] }
+    timeline: { type: [timelineItemSchema], default: () => [{ stage: "Submitted", note: "Complaint filed" }] },
+    comments: { type: [commentSchema], default: [] }
   },
   { timestamps: true }
 );
